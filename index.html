@@ -3,90 +3,133 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>时间记录小本</title>
+<title>宝宝记录小本</title>
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--text:#1f1f1f;--sub:#7a7a7a;--accent:#2f6f5e;--line:#e6e4df;--danger:#c0392b}
-@media (prefers-color-scheme:dark){:root{--bg:#161616;--card:#222;--text:#eee;--sub:#999;--accent:#5fb89e;--line:#333;--danger:#e57368}}
-*{box-sizing:border-box}
+:root{--bg:#f6f5f2;--card:#fff;--text:#1f1f1f;--sub:#7a7a7a;--accent:#2f6f5e;--line:#e6e4df;--danger:#c0392b;--pee:#3a86c8;--poo:#a0702c;--drink:#2f9e8f;--other:#8a63b8}
+@media (prefers-color-scheme:dark){:root{--bg:#161616;--card:#222;--text:#eee;--sub:#999;--accent:#5fb89e;--line:#333;--danger:#e57368;--pee:#6aaee6;--poo:#d2a25f;--drink:#5fcdbd;--other:#b99be0}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,"PingFang SC",sans-serif}
-main{max-width:480px;margin:0 auto;padding:20px 16px 60px}
-h1{font-size:18px;margin:0 0 16px;display:flex;align-items:center;gap:8px}
-h1 input{font:inherit;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;color:inherit;width:8em;padding:2px 0}
-.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--line)}
-button{font:inherit;cursor:pointer}
-#rec{width:100%;padding:18px;font-size:20px;font-weight:600;border:none;border-radius:14px;background:var(--accent);color:#fff}
-#rec:active{transform:scale(.98)}
-.next{font-size:13px;color:var(--sub)}
-.big{font-size:26px;font-weight:700;margin:2px 0}
-.row{display:flex;justify-content:space-between;gap:12px}
-.row>div{flex:1}
-.lbl{font-size:12px;color:var(--sub)}
-.val{font-size:18px;font-weight:600}
+main{max-width:480px;margin:0 auto;padding:18px 14px 70px}
+h1{font-size:18px;margin:0 0 14px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid var(--line)}
+button{font:inherit;cursor:pointer;color:inherit}
+.btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.btns button{border:none;border-radius:14px;padding:14px 4px;color:#fff;font-weight:600;font-size:15px;line-height:1.3}
+.btns button span{display:block;font-size:22px}
+.btns button:active{transform:scale(.97)}
+.b-pee{background:var(--pee)}.b-poo{background:var(--poo)}.b-drink{background:var(--drink)}.b-other{background:var(--other)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat h3{margin:0 0 6px;font-size:14px}
+.lbl{font-size:12px;color:var(--sub)}.val{font-size:17px;font-weight:600}
+.next{font-size:13px;color:var(--sub);margin-top:6px}
+.tips{border-color:var(--danger)}.tips b{color:var(--danger)}.tips div{margin:3px 0;font-size:14px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 12px;font-size:14px}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 ul{list-style:none;margin:0;padding:0}
-li{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+li{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
 li:last-child{border-bottom:none}
-li small{color:var(--sub);margin-left:8px}
-li button{border:none;background:none;color:var(--danger);font-size:13px}
-.add{display:flex;gap:8px}
-.add input{flex:1;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
-.add button{padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:none;color:var(--accent)}
-.foot{text-align:center;font-size:12px;color:var(--sub)}
+.ev .t{font-size:13px;color:var(--sub)}
+.ev .k{font-weight:600}
+.ev .dd{font-size:13px;color:var(--sub);margin-top:1px}
+li .ops{white-space:nowrap}
+li .ops button{border:none;background:none;font-size:13px;padding:2px 4px;color:var(--sub)}
+li .ops .del{color:var(--danger)}
+.foot{text-align:center;font-size:12px;color:var(--sub);margin-top:6px}
 .foot button{border:none;background:none;color:var(--sub);text-decoration:underline;font-size:12px}
+.note{font-size:12px;color:var(--sub);text-align:center;margin-top:10px}
+#mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:10}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--card);border-radius:18px 18px 0 0;padding:16px 16px 24px;max-height:88vh;overflow:auto;z-index:11;display:none}
+#sheet h2{margin:0 0 10px;font-size:17px}
+.fld{margin:12px 0}
+.fld .lbl{margin-bottom:5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips .chip small{display:block;font-size:11px;color:inherit;opacity:.75}
+.chip.shape{width:calc(50% - 3px);text-align:left;border-radius:10px;padding:6px 10px;font-size:13px}
+input[type=text],input[type=number],input[type=datetime-local]{width:100%;font:inherit;padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+.save{width:100%;margin-top:8px;padding:13px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:600;font-size:16px}
+.cancel{width:100%;margin-top:6px;padding:10px;border:none;background:none;color:var(--sub)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;display:none;z-index:20;white-space:nowrap}
+#toast button{border:none;background:none;color:#7fd1ff;font-size:14px;margin-left:10px}
 </style>
 </head>
 <body>
 <main>
-  <h1>记录：<input id="name" maxlength="10" placeholder="起个名字"></h1>
+  <h1>宝宝记录小本</h1>
 
-  <button id="rec">现在记一次</button>
-
-  <div class="card" style="margin-top:14px">
-    <div class="next">预计下一次</div>
-    <div class="big" id="nextTime">—</div>
-    <div class="next" id="nextHint">至少记录 2 次后才能预测</div>
+  <div class="btns">
+    <button class="b-pee" id="bPee"><span>💧</span>尿尿</button>
+    <button class="b-poo" id="bPoo"><span>💩</span>便便</button>
+    <button class="b-drink" id="bDrink"><span>🥛</span>喝水奶</button>
+    <button class="b-other" id="bOther"><span>📝</span>其它</button>
   </div>
 
-  <div class="card">
-    <div class="row">
-      <div><div class="lbl">今天</div><div class="val" id="today">0 次</div></div>
-      <div><div class="lbl">共记录</div><div class="val" id="cnt">0 次</div></div>
-      <div><div class="lbl">平均间隔</div><div class="val" id="avg">—</div></div>
-      <div><div class="lbl">最近3次平均</div><div class="val" id="avg3">—</div></div>
+  <div class="card tips" id="tips" style="display:none"></div>
+
+  <div class="grid2">
+    <div class="card stat"><h3 style="color:var(--pee)">💧 尿尿</h3>
+      <div class="lbl">今天</div><div class="val" id="peeToday">0 次</div>
+      <div class="lbl" style="margin-top:6px">平均间隔</div><div class="val" id="peeAvg">—</div>
+      <div class="next" id="peeNext">—</div>
     </div>
-    <div class="row" style="margin-top:12px">
-      <div><div class="lbl">常在几点</div><div class="val" id="hour">—</div></div>
-      <div><div class="lbl">距上一次</div><div class="val" id="since">—</div></div>
+    <div class="card stat"><h3 style="color:var(--poo)">💩 便便</h3>
+      <div class="lbl">今天</div><div class="val" id="pooToday">0 次</div>
+      <div class="lbl" style="margin-top:6px">平均间隔</div><div class="val" id="pooAvg">—</div>
+      <div class="next" id="pooNext">—</div>
+    </div>
+  </div>
+  <div class="card" style="padding:10px 14px">
+    <div class="grid2">
+      <div><div class="lbl">今天喝了</div><div class="val" id="drinkToday">0 ml</div></div>
+      <div><div class="lbl">最近便便形态</div><div class="val" id="shapes" style="font-size:15px">—</div></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="lbl" style="margin-bottom:8px">补记一次（忘了点的时候）</div>
-    <div class="add"><input type="datetime-local" id="manual"><button id="addBtn">补记</button></div>
-  </div>
-
-  <div class="card">
-    <div class="lbl" style="margin-bottom:4px">记录（新的在上面）</div>
+    <div class="filters" id="filters"></div>
     <ul id="list"></ul>
   </div>
 
+  <div class="note">仅作记录参考，宝宝不舒服请及时看医生</div>
   <div class="foot"><span id="sync"></span> · <button id="exp">导出备份</button></div>
 </main>
 
+<div id="mask"></div>
+<div id="sheet"></div>
+<div id="toast"></div>
+
 <script>
 const SB='https://oznaumvwecurqmfjqwne.supabase.co', KEYAPI='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96bmF1bXZ3ZWN1cnFtZmpxd25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4OTE2NTEsImV4cCI6MjEwMjQ2NzY1MX0.bJfcVFpFspYdmwoeb_tDu77_IJsSfk8alJbtNrsJgPI';
-const KEY='timelog.v1';
+const KEY='timelog.v2';
+const KINDS={pee:{n:'尿尿',e:'💧'},poo:{n:'便便',e:'💩'},drink:{n:'喝水奶',e:'🥛'},other:{n:'其它',e:'📝'}};
+const SHAPES=[
+ [1,'一粒粒硬球','很干，像羊粪蛋'],[2,'硬香肠有疙瘩','偏干'],[3,'香肠有裂纹','正常'],[4,'光滑软香肠','最理想'],
+ [5,'软块边缘清楚','偏软'],[6,'糊状没形状','偏稀'],[7,'水样','腹泻样']];
+const POO_COLORS=['黄','棕','浅棕','绿','黑','红/带血','白灰'];
+const PEE_COLORS=['无色','淡黄','黄','深黄','红/粉'];
+const AMT=['少','中','多'];
+
 // 口令:从链接 #k=xxxx 读取并记住;口令不进代码仓库
 let code='';
 try{const m=location.hash.match(/k=([A-Za-z0-9_-]{12,})/);if(m){localStorage.setItem('timelog.code',m[1]);history.replaceState(null,'',location.pathname)}code=localStorage.getItem('timelog.code')||''}catch(e){}
-let data={name:'儿子尿尿',times:[],pending:[]};
-try{const s=localStorage.getItem(KEY);if(s)Object.assign(data,JSON.parse(s))}catch(e){}
+let data={events:[],pending:[]};
+try{
+  const s=localStorage.getItem(KEY);if(s)Object.assign(data,JSON.parse(s));
+  if(!data.events.length){ // 从旧版(只有尿尿时间)迁移到本地,云端以服务器为准
+    const o=localStorage.getItem('timelog.v1');
+    if(o){const od=JSON.parse(o);data.events=(od.times||[]).map(t=>({t,k:'pee',d:{}}))}
+  }
+}catch(e){}
 data.pending=data.pending||[];
+let filter='all';
 const $=id=>document.getElementById(id);
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({events:data.events,pending:data.pending}))}catch(e){}};
 const p2=n=>String(n).padStart(2,'0');
 const fmt=t=>{const d=new Date(t);return `${d.getMonth()+1}月${d.getDate()}日 ${p2(d.getHours())}:${p2(d.getMinutes())}`};
 const dur=ms=>{const m=Math.round(ms/60000);if(m<60)return m+'分钟';const h=Math.floor(m/60),r=m%60;if(h<48)return h+'小时'+(r?r+'分':'');const d=Math.floor(h/24);return d+'天'+(h%24)+'小时'};
 const dayWord=t=>{const d=new Date(t),n=new Date();const a=new Date(d.getFullYear(),d.getMonth(),d.getDate()),b=new Date(n.getFullYear(),n.getMonth(),n.getDate());const k=Math.round((a-b)/864e5);return k===0?'今天':k===1?'明天':k===-1?'昨天':k===2?'后天':''};
+const toLocalInput=t=>{const d=new Date(t);return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // ---- 云同步(没口令就只存本机)----
 async function rpc(fn,body){
@@ -97,61 +140,163 @@ async function rpc(fn,body){
 function status(t,bad){const e=$('sync');e.textContent=t;e.style.color=bad?'var(--danger)':'var(--sub)'}
 let syncing=false;
 async function sync(){
-  if(!code){status('只存在本机（没有口令，用带口令的链接打开才会同步）');return}
+  if(!code){status('只存在本机（用带口令的链接打开才会同步）');return}
   if(syncing)return;syncing=true;
   try{
     while(data.pending.length){
       const op=data.pending[0];
-      await rpc(op.op==='add'?'pl_add':'pl_del',{p_code:code,p_ms:op.ms});
+      if(op.op==='add')await rpc('kl_add',{p_code:code,p_ms:op.t,p_kind:op.k,p_d:op.d||{}});
+      else await rpc('kl_del',{p_code:code,p_ms:op.t,p_kind:op.k});
       data.pending.shift();save();
     }
-    const list=await rpc('pl_list',{p_code:code});
-    data.times=list;save();render();
+    data.events=await rpc('kl_list',{p_code:code});save();render();
     status('已同步 · '+p2(new Date().getHours())+':'+p2(new Date().getMinutes()));
   }catch(e){status('同步失败，已先存在本机，稍后自动重试',true)}
   syncing=false;
 }
-function addTime(t){data.times.push(t);data.pending.push({op:'add',ms:t});save();render();sync()}
-function delTime(t){data.times=data.times.filter(x=>x!==t);data.pending.push({op:'del',ms:t});save();render();sync()}
+function putEvent(t,k,d){
+  data.events=data.events.filter(e=>!(e.t===t&&e.k===k));
+  data.events.push({t,k,d});
+  data.pending.push({op:'add',t,k,d});save();render();sync();
+}
+function delEvent(t,k){
+  data.events=data.events.filter(e=>!(e.t===t&&e.k===k));
+  data.pending.push({op:'del',t,k});save();render();sync();
+}
+
+// ---- 统计 ----
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const of=k=>data.events.filter(e=>e.k===k).sort((a,b)=>a.t-b.t);
+const t0=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
+function interval(k,todayId,avgId,nextId){
+  const ts=of(k).map(e=>e.t);
+  $(todayId).textContent=ts.filter(t=>t>=t0()).length+' 次';
+  const gaps=[];for(let i=1;i<ts.length;i++)gaps.push(ts[i]-ts[i-1]);
+  if(!gaps.length){$(avgId).textContent='—';$(nextId).textContent=ts.length?'再记一次就能预测':'还没有记录';return}
+  const avg=mean(gaps),nx=ts[ts.length-1]+avg;
+  $(avgId).textContent=dur(avg);
+  const w=dayWord(nx);
+  $(nextId).textContent=`预计下次 ${w} ${p2(new Date(nx).getHours())}:${p2(new Date(nx).getMinutes())}`+(nx<Date.now()?'（已超 '+dur(Date.now()-nx)+'）':'');
+}
+function detailText(e){
+  const d=e.d||{};const a=[];
+  if(e.k==='poo'){if(d.s){const s=SHAPES.find(x=>x[0]===d.s);a.push(`${d.s}型${s?'·'+s[1]:''}`)}if(d.c)a.push(d.c+'色');if(d.q)a.push('量'+d.q)}
+  if(e.k==='pee'){if(d.c)a.push(d.c);if(d.q)a.push('量'+d.q)}
+  if(e.k==='drink'){a.push((d.w||'水')+(d.ml?' '+d.ml+'ml':''))}
+  if(e.k==='other'){a.push(d.name||'其它')}
+  if(d.n)a.push('「'+d.n+'」');
+  return a.join(' · ');
+}
+
+// ---- 温和提醒(参考用,不是诊断)----
+function tips(){
+  const T=[],now=Date.now();
+  const poo=of('poo'),pee=of('pee');
+  const lastPoo=poo[poo.length-1];
+  if(lastPoo&&now-lastPoo.t<36e5*24){
+    const c=(lastPoo.d||{}).c;
+    if(c==='红/带血'||c==='黑'||c==='白灰')T.push(`最近一次便便是「${c}」色，不常见，建议拍照问医生。`);
+  }
+  const loose=poo.filter(e=>e.t>=t0()&&(e.d||{}).s>=6).length;
+  if(loose>=3)T.push(`今天已有 ${loose} 次偏稀的便便，注意多补水，持续或精神差请就医。`);
+  if(lastPoo&&now-lastPoo.t>72*36e5)T.push(`已经 ${dur(now-lastPoo.t)} 没记录到便便，留意是否偏干、肚子是否胀。`);
+  const lastPee=pee[pee.length-1];
+  if(lastPee&&now-lastPee.t>8*36e5&&new Date().getHours()>=9&&new Date().getHours()<22)T.push(`已经 ${dur(now-lastPee.t)} 没记录到尿尿（若只是忘了点可忽略），注意是否喝水少。`);
+  if(lastPee&&now-lastPee.t<36e5*24&&(lastPee.d||{}).c==='红/粉')T.push('最近一次尿尿颜色偏红/粉，建议问医生。');
+  const el=$('tips');
+  if(T.length){el.style.display='';el.innerHTML='<b>温馨提醒</b>'+T.map(x=>'<div>• '+esc(x)+'</div>').join('')}else el.style.display='none';
+}
 
 function render(){
-  const ts=[...data.times].sort((a,b)=>a-b);
-  $('name').value=data.name||'';
-  $('cnt').textContent=ts.length+' 次';
-  const t0=new Date();t0.setHours(0,0,0,0);
-  $('today').textContent=ts.filter(t=>t>=t0.getTime()).length+' 次';
-  const gaps=[];for(let i=1;i<ts.length;i++)gaps.push(ts[i]-ts[i-1]);
-  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
-  const avg=gaps.length?mean(gaps):null;
-  const avg3=gaps.length?mean(gaps.slice(-3)):null;
-  $('avg').textContent=avg?dur(avg):'—';
-  $('avg3').textContent=avg3?dur(avg3):'—';
-  if(ts.length){
-    const last=ts[ts.length-1];
-    $('since').textContent=dur(Date.now()-last);
-    const hc={};ts.forEach(t=>{const h=new Date(t).getHours();hc[h]=(hc[h]||0)+1});
-    const top=Object.entries(hc).sort((a,b)=>b[1]-a[1])[0];
-    $('hour').textContent=top[0]+' 点左右';
-  }else{$('since').textContent='—';$('hour').textContent='—'}
-  if(avg){
-    const nx=ts[ts.length-1]+avg,over=nx<Date.now();
-    $('nextTime').textContent=(dayWord(nx)+' '+p2(new Date(nx).getHours())+':'+p2(new Date(nx).getMinutes())).trim();
-    $('nextHint').textContent=over?`按平均间隔 ${dur(avg)}，已经超过预计时间 ${dur(Date.now()-nx)}`:`按平均间隔 ${dur(avg)}，还有约 ${dur(nx-Date.now())}`;
-  }else{$('nextTime').textContent='—';$('nextHint').textContent='至少记录 2 次后才能预测'}
+  interval('pee','peeToday','peeAvg','peeNext');
+  interval('poo','pooToday','pooAvg','pooNext');
+  $('drinkToday').textContent=of('drink').filter(e=>e.t>=t0()).reduce((s,e)=>s+(Number((e.d||{}).ml)||0),0)+' ml';
+  const sh=of('poo').slice(-6).map(e=>(e.d||{}).s).filter(Boolean);
+  $('shapes').textContent=sh.length?sh.join(' · ')+' 型':'—';
+  tips();
+  const F=$('filters');F.innerHTML='';
+  [['all','全部'],...Object.entries(KINDS).map(([k,v])=>[k,v.n])].forEach(([k,n])=>{
+    const b=document.createElement('button');b.className='chip'+(filter===k?' on':'');b.textContent=n;b.onclick=()=>{filter=k;render()};F.appendChild(b)});
+  const all=[...data.events].sort((a,b)=>b.t-a.t);
+  const prevOf={};const asc=[...data.events].sort((a,b)=>a.t-b.t);const gapMap=new Map();
+  asc.forEach(e=>{const p=prevOf[e.k];gapMap.set(e.t+e.k,p?e.t-p:null);prevOf[e.k]=e.t});
   const ul=$('list');ul.innerHTML='';
-  [...ts].reverse().forEach((t,i,arr)=>{
+  const shown=all.filter(e=>filter==='all'||e.k===filter).slice(0,200);
+  if(!shown.length){ul.innerHTML='<li style="color:var(--sub)">还没有记录，点上面的按钮开始</li>';return}
+  shown.forEach(e=>{
     const li=document.createElement('li');
-    const prev=arr[i+1];
-    li.innerHTML=`<span>${fmt(t)}<small>${prev?'距上次 '+dur(t-prev):''}</small></span>`;
-    const b=document.createElement('button');b.textContent='删除';
-    b.onclick=()=>{if(confirm('删掉这条记录？'))delTime(t)};
-    li.appendChild(b);ul.appendChild(li);
+    const g=gapMap.get(e.t+e.k);const dt=detailText(e);
+    li.className='ev';
+    li.innerHTML=`<div><div class="k">${KINDS[e.k].e} ${KINDS[e.k].n}</div><div class="t">${fmt(e.t)}${g&&e.k!=='other'?' · 距上次'+dur(g):''}</div>${dt?'<div class="dd">'+esc(dt)+'</div>':''}</div><div class="ops"><button data-a="edit">编辑</button><button class="del" data-a="del">删除</button></div>`;
+    li.querySelector('[data-a=edit]').onclick=()=>openSheet(e.k,e);
+    li.querySelector('[data-a=del]').onclick=()=>{if(confirm('删掉这条记录？'))delEvent(e.t,e.k)};
+    ul.appendChild(li);
   });
 }
-$('rec').onclick=()=>addTime(Date.now());
-$('addBtn').onclick=()=>{const v=$('manual').value;if(!v)return;const t=new Date(v).getTime();if(isNaN(t))return;$('manual').value='';addTime(t)};
-$('name').oninput=e=>{data.name=e.target.value;save()};
-$('exp').onclick=()=>{const b=new Blob([JSON.stringify({name:data.name,times:data.times},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='时间记录备份.json';a.click()};
+
+// ---- 弹层 ----
+function toast(msg,actionText,fn){
+  const el=$('toast');el.textContent=msg;
+  if(actionText){const b=document.createElement('button');b.textContent=actionText;b.onclick=()=>{el.style.display='none';fn()};el.appendChild(b)}
+  el.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.display='none',5000);
+}
+function closeSheet(){$('sheet').style.display='none';$('mask').style.display='none'}
+$('mask').onclick=closeSheet;
+function chipsHTML(name,opts,cur,cls){
+  return `<div class="chips" data-f="${name}">`+opts.map(o=>{
+    const arr=Array.isArray(o),v=arr?o[0]:o,l=arr?o[1]:o,sub=arr?o[2]:'';
+    return `<button type="button" class="chip ${cls||''}${String(cur)===String(v)?' on':''}" data-v="${esc(v)}">${esc(arr?v+' '+l:l)}${sub?'<small>'+esc(sub)+'</small>':''}</button>`}).join('')+'</div>';
+}
+function openSheet(kind,ev){
+  const editing=!!ev,d=Object.assign({},(ev&&ev.d)||{}),t=ev?ev.t:Date.now();
+  const sh=$('sheet');
+  const timeFld=`<div class="fld"><div class="lbl">时间${editing?'（要改时间请删掉重记）':''}</div><input type="datetime-local" id="fTime" value="${toLocalInput(t)}" ${editing?'disabled':''}></div>`;
+  const noteFld=`<div class="fld"><div class="lbl">备注（可不填）</div><input type="text" id="fNote" maxlength="60" value="${esc(d.n||'')}" placeholder="比如：吃了香蕉、哭闹、肚子胀…"></div>`;
+  let body='';
+  if(kind==='poo')body=timeFld+`<div class="fld"><div class="lbl">形态（点最像的那个）</div>${chipsHTML('s',SHAPES,d.s,'shape')}</div>
+    <div class="fld"><div class="lbl">颜色</div>${chipsHTML('c',POO_COLORS,d.c)}</div>
+    <div class="fld"><div class="lbl">量</div>${chipsHTML('q',AMT,d.q)}</div>`+noteFld;
+  if(kind==='pee')body=timeFld+`<div class="fld"><div class="lbl">颜色</div>${chipsHTML('c',PEE_COLORS,d.c)}</div>
+    <div class="fld"><div class="lbl">量</div>${chipsHTML('q',AMT,d.q)}</div>`+noteFld;
+  if(kind==='drink')body=timeFld+`<div class="fld"><div class="lbl">喝的是</div>${chipsHTML('w',['水','奶','其它'],d.w||'水')}</div>
+    <div class="fld"><div class="lbl">毫升</div><input type="number" id="fMl" inputmode="numeric" min="0" max="2000" value="${d.ml||''}" placeholder="比如 150">
+    <div class="chips" style="margin-top:6px" data-f="mlq">${[50,100,150,200,250].map(n=>`<button type="button" class="chip" data-v="${n}">${n}</button>`).join('')}</div></div>`+noteFld;
+  if(kind==='other')body=timeFld+`<div class="fld"><div class="lbl">记什么（点一个，或自己填）</div>${chipsHTML('nm',['体温','吃药','发烧','呕吐','咳嗽','哭闹','睡觉','洗澡'],d.name)}
+    <input type="text" id="fName" maxlength="12" style="margin-top:6px" value="${esc(d.name||'')}" placeholder="自己填，比如：体温"></div>
+    <div class="fld"><div class="lbl">内容 / 数值</div><input type="text" id="fNote" maxlength="60" value="${esc(d.n||'')}" placeholder="比如：37.8℃、半片退烧药"></div>`;
+  sh.innerHTML=`<h2>${KINDS[kind].e} ${editing?'编辑':'记录'}${KINDS[kind].n}</h2>${body}<button class="save" id="fSave">保存</button><button class="cancel" id="fCancel">取消</button>`;
+  sh.querySelectorAll('.chips').forEach(box=>{
+    box.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+      const f=box.dataset.f,v=c.dataset.v;
+      if(f==='mlq'){$('fMl').value=v;return}
+      if(f==='nm'){$('fName').value=v;box.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));return}
+      const on=c.classList.contains('on');
+      box.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+      if(!on||f==='w')c.classList.add('on'); // 再点一次取消选择(喝的种类必选)
+    });
+  });
+  $('fCancel').onclick=closeSheet;
+  $('fSave').onclick=()=>{
+    const pick=f=>{const c=sh.querySelector(`.chips[data-f="${f}"] .chip.on`);return c?c.dataset.v:''};
+    const nd={};
+    if(kind==='poo'){const s=pick('s');if(s)nd.s=Number(s);const c=pick('c');if(c)nd.c=c;const q=pick('q');if(q)nd.q=q}
+    if(kind==='pee'){const c=pick('c');if(c)nd.c=c;const q=pick('q');if(q)nd.q=q}
+    if(kind==='drink'){nd.w=pick('w')||'水';const ml=Number($('fMl').value);if(ml>0)nd.ml=ml}
+    if(kind==='other'){nd.name=$('fName').value.trim()||'其它'}
+    const n=$('fNote').value.trim();if(n)nd.n=n;
+    let tt=t;
+    if(!editing){const v=$('fTime').value;tt=v?new Date(v).getTime():Date.now();if(isNaN(tt))tt=Date.now()}
+    closeSheet();putEvent(tt,kind,nd);
+    if(kind==='poo'){const c=nd.c;if(c==='红/带血'||c==='黑'||c==='白灰')toast('颜色不常见，建议拍照问医生')}
+  };
+  $('mask').style.display='block';sh.style.display='block';sh.scrollTop=0;
+}
+
+$('bPee').onclick=()=>{const t=Date.now();putEvent(t,'pee',{});toast('已记尿尿','补充颜色/量',()=>openSheet('pee',{t,k:'pee',d:{}}))};
+$('bPoo').onclick=()=>openSheet('poo');
+$('bDrink').onclick=()=>openSheet('drink');
+$('bOther').onclick=()=>openSheet('other');
+$('exp').onclick=()=>{const b=new Blob([JSON.stringify({events:data.events},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='宝宝记录备份.json';a.click()};
 setInterval(render,60000);
 setInterval(sync,60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
