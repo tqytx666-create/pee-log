@@ -144,18 +144,33 @@ async function rpc(fn,body){
   return r.status===204?null:r.json();
 }
 function status(t,bad){const e=$('sync');e.textContent=t;e.style.color=bad?'var(--danger)':'var(--sub)'}
-let syncing=false;
+let syncing=false,again=false;
+// 把还没上传的操作叠加到服务器列表上,避免同步期间新记的记录"消失"
+function applyPending(list){
+  const out=list.slice();
+  data.pending.forEach(op=>{
+    const i=out.findIndex(e=>e.t===op.t&&e.k===op.k);
+    if(op.op==='add'){const ev={t:op.t,k:op.k,d:op.d||{}};if(i>=0)out[i]=ev;else out.push(ev)}
+    else if(i>=0)out.splice(i,1);
+  });
+  return out;
+}
 async function sync(){
   if(!code){status('只存在本机（用带口令的链接打开才会同步）');return}
-  if(syncing)return;syncing=true;
+  if(syncing){again=true;return}
+  syncing=true;
   try{
-    while(data.pending.length){
-      const op=data.pending[0];
-      if(op.op==='add')await rpc('kl_add',{p_code:code,p_ms:op.t,p_kind:op.k,p_d:op.d||{}});
-      else await rpc('kl_del',{p_code:code,p_ms:op.t,p_kind:op.k});
-      data.pending.shift();save();
-    }
-    data.events=await rpc('kl_list',{p_code:code});save();render();
+    do{
+      again=false;
+      while(data.pending.length){
+        const op=data.pending[0];
+        if(op.op==='add')await rpc('kl_add',{p_code:code,p_ms:op.t,p_kind:op.k,p_d:op.d||{}});
+        else await rpc('kl_del',{p_code:code,p_ms:op.t,p_kind:op.k});
+        data.pending.shift();save();
+      }
+      const list=await rpc('kl_list',{p_code:code});
+      data.events=applyPending(list);save();render();
+    }while(again||data.pending.length);
     status('已同步 · '+p2(new Date().getHours())+':'+p2(new Date().getMinutes()));
   }catch(e){status('同步失败，已先存在本机，稍后自动重试',true)}
   syncing=false;
