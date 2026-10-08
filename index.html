@@ -86,6 +86,12 @@ input[type=text],input[type=number],input[type=datetime-local]{width:100%;font:i
   </div>
 
   <div class="card">
+    <div class="filters" id="ctabs"></div>
+    <div id="chart"></div>
+    <div class="lbl" id="chartNote" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
     <div class="filters" id="filters"></div>
     <ul id="list"></ul>
   </div>
@@ -207,6 +213,109 @@ function tips(){
   if(T.length){el.style.display='';el.innerHTML='<b>温馨提醒</b>'+T.map(x=>'<div>• '+esc(x)+'</div>').join('')}else el.style.display='none';
 }
 
+
+// ---- 图表(纯SVG,跟随明暗主题)----
+let chartTab='today';
+const CTABS=[['today','今天'],['week','近7天'],['shape','便便形态'],['hour','全天分布']];
+const POO_HEX={'黄':'#e0b020','棕':'#8b5a2b','浅棕':'#c4955a','绿':'#5a9e4b','黑':'#222222','红/带血':'#d33a2c','白灰':'#bdbdbd'};
+const BAD_POO=['红/带血','黑','白灰'];
+const svg=(h,inner)=>`<svg viewBox="0 0 340 ${h}" width="100%" style="display:block" role="img">${inner}</svg>`;
+const dd=e=>e.d||{};
+const empty=m=>`<div class="lbl" style="padding:26px 0;text-align:center">${m}</div>`;
+
+function chartToday(){
+  const s=t0(),W=340,L=30,R=10,iw=W-L-R,x=t=>L+(t-s)/864e5*iw;
+  let g='',n={pee:0,poo:0,drink:0};
+  ['pee','poo','drink','other'].forEach((k,i)=>{
+    const y=20+i*26;
+    g+=`<text x="2" y="${y+5}" font-size="14">${KINDS[k].e}</text><line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)"/>`;
+    data.events.filter(e=>e.k===k&&e.t>=s&&e.t<s+864e5).forEach(e=>{
+      if(n[k]!==undefined)n[k]++;
+      const r=k==='drink'?Math.min(9,3.5+(dd(e).ml||0)/35):6;
+      const bad=k==='poo'&&BAD_POO.includes(dd(e).c);
+      g+=`<circle cx="${x(e.t)}" cy="${y}" r="${r}" fill="var(--${k})" fill-opacity=".85"${bad?' stroke="var(--danger)" stroke-width="2.5"':''}/>`;
+    });
+  });
+  [0,6,12,18,24].forEach(h=>{const xx=L+h/24*iw;g+=`<line x1="${xx}" x2="${xx}" y1="8" y2="116" stroke="var(--line)" stroke-dasharray="2 3"/><text x="${xx}" y="132" font-size="10" fill="var(--sub)" text-anchor="middle">${h}点</text>`});
+  const nx=x(Date.now());g+=`<line x1="${nx}" x2="${nx}" y1="6" y2="118" stroke="var(--danger)" stroke-width="1.5"/><text x="${Math.min(nx+3,W-24)}" y="12" font-size="10" fill="var(--danger)">现在</text>`;
+  $('chartNote').textContent=`今天 尿尿 ${n.pee} 次 · 便便 ${n.poo} 次 · 喝 ${of('drink').filter(e=>e.t>=s).reduce((a,e)=>a+(Number(dd(e).ml)||0),0)} ml（红圈=颜色不常见）`;
+  return svg(140,g);
+}
+
+function chartWeek(){
+  const W=340,L=8,R=8,cw=(W-L-R)/7,days=[];
+  const base=t0();
+  for(let i=6;i>=0;i--)days.push(base-i*864e5);
+  const cnt=(k,d)=>data.events.filter(e=>e.k===k&&e.t>=d&&e.t<d+864e5).length;
+  const ml=d=>data.events.filter(e=>e.k==='drink'&&e.t>=d&&e.t<d+864e5).reduce((a,e)=>a+(Number(dd(e).ml)||0),0);
+  const pee=days.map(d=>cnt('pee',d)),poo=days.map(d=>cnt('poo',d)),dr=days.map(ml);
+  if(![...pee,...poo,...dr].some(v=>v>0))return empty('近7天还没有记录');
+  const mx=Math.max(4,...pee,...poo),mxd=Math.max(300,...dr);
+  const H1=84,top=16;let g='';
+  g+=`<text x="${L}" y="10" font-size="10" fill="var(--sub)">每天次数</text>`;
+  days.forEach((d,i)=>{
+    const x0=L+i*cw,hp=pee[i]/mx*H1,hk=poo[i]/mx*H1;
+    g+=`<rect x="${x0+6}" y="${top+H1-hp}" width="16" height="${hp}" rx="3" fill="var(--pee)"/><rect x="${x0+24}" y="${top+H1-hk}" width="16" height="${hk}" rx="3" fill="var(--poo)"/>`;
+    if(pee[i])g+=`<text x="${x0+14}" y="${top+H1-hp-3}" font-size="10" fill="var(--sub)" text-anchor="middle">${pee[i]}</text>`;
+    if(poo[i])g+=`<text x="${x0+32}" y="${top+H1-hk-3}" font-size="10" fill="var(--sub)" text-anchor="middle">${poo[i]}</text>`;
+    const wd='日一二三四五六'[new Date(d).getDay()];
+    g+=`<text x="${x0+cw/2}" y="${top+H1+13}" font-size="11" fill="${i===6?'var(--text)':'var(--sub)'}" text-anchor="middle" font-weight="${i===6?700:400}">${i===6?'今':'周'+wd}</text>`;
+  });
+  g+=`<line x1="${L}" x2="${W-R}" y1="${top+H1}" y2="${top+H1}" stroke="var(--line)"/>`;
+  const y2=top+H1+56,H2=44;
+  g+=`<text x="${L}" y="${top+H1+34}" font-size="10" fill="var(--sub)">每天喝（毫升）</text>`;
+  days.forEach((d,i)=>{const x0=L+i*cw,h=dr[i]/mxd*H2;
+    g+=`<rect x="${x0+10}" y="${y2+H2-h}" width="26" height="${h}" rx="3" fill="var(--drink)" fill-opacity=".85"/>`;
+    if(dr[i])g+=`<text x="${x0+23}" y="${y2+H2-h-3}" font-size="10" fill="var(--sub)" text-anchor="middle">${dr[i]}</text>`});
+  g+=`<line x1="${L}" x2="${W-R}" y1="${y2+H2}" y2="${y2+H2}" stroke="var(--line)"/>`;
+  const av=a=>(a.reduce((x,y)=>x+y,0)/7).toFixed(1);
+  $('chartNote').innerHTML=`近7天平均每天：<span style="color:var(--pee)">尿 ${av(pee)} 次</span> · <span style="color:var(--poo)">便 ${av(poo)} 次</span> · <span style="color:var(--drink)">喝 ${Math.round(dr.reduce((x,y)=>x+y,0)/7)} ml</span>`;
+  return svg(y2+H2+8,g);
+}
+
+function chartShape(){
+  const ev=of('poo').filter(e=>dd(e).s).slice(-14);
+  if(!ev.length)return empty('记便便时选一下形态，这里就会出现趋势');
+  const W=340,L=26,R=10,T=10,B=22,H=150,ih=H-T-B,iw=W-L-R;
+  const y=v=>T+(7-v)/6*ih,x=i=>ev.length===1?L+iw/2:L+i/(ev.length-1)*iw;
+  let g=`<rect x="${L}" y="${y(5)}" width="${iw}" height="${y(3)-y(5)}" fill="#4caf7a" fill-opacity=".14"/><text x="${W-R-2}" y="${y(5)+11}" font-size="10" fill="#4caf7a" text-anchor="end">正常区 3–5型</text>`;
+  for(let v=1;v<=7;v++)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-dasharray="${v===4?'':'2 3'}"/><text x="${L-6}" y="${y(v)+4}" font-size="10" fill="var(--sub)" text-anchor="end">${v}</text>`;
+  g+=`<text x="${W-R-2}" y="${y(7)+11}" font-size="9" fill="var(--sub)" text-anchor="end">↑ 偏稀</text><text x="${W-R-2}" y="${y(1)-4}" font-size="9" fill="var(--sub)" text-anchor="end">↓ 偏干</text>`;
+  if(ev.length>1)g+=`<polyline fill="none" stroke="var(--sub)" stroke-opacity=".5" stroke-width="1.5" points="${ev.map((e,i)=>x(i)+','+y(dd(e).s)).join(' ')}"/>`;
+  ev.forEach((e,i)=>{const c=dd(e).c,hex=POO_HEX[c]||'var(--poo)';
+    g+=`<circle cx="${x(i)}" cy="${y(dd(e).s)}" r="7" fill="${hex}" stroke="${BAD_POO.includes(c)?'var(--danger)':'var(--card)'}" stroke-width="2"/>`;
+    if(i===0||i===ev.length-1||ev.length<=7){const d=new Date(e.t);g+=`<text x="${x(i)}" y="${H-6}" font-size="9" fill="var(--sub)" text-anchor="middle">${d.getMonth()+1}/${d.getDate()}</text>`}});
+  const ok=ev.filter(e=>dd(e).s>=3&&dd(e).s<=5).length;
+  const used=[...new Set(ev.map(e=>dd(e).c).filter(Boolean))];
+  $('chartNote').innerHTML=`最近 ${ev.length} 次里 ${ok} 次在正常区。圆点颜色=便便颜色：`+used.map(c=>`<span style="color:${POO_HEX[c]||'inherit'}">●</span>${c}`).join(' ');
+  return svg(H,g);
+}
+
+function chartHour(){
+  const rows=[['pee','尿尿'],['poo','便便'],['drink','喝水奶']];
+  const W=340,L=44,R=8,iw=W-L-R,cw=iw/24;
+  const cnts=rows.map(([k])=>{const a=Array(24).fill(0);data.events.filter(e=>e.k===k).forEach(e=>a[new Date(e.t).getHours()]++);return a});
+  if(!cnts.some(a=>a.some(v=>v>0)))return empty('记几次之后，这里会显示一天里什么时候最常发生');
+  let g='';
+  rows.forEach(([k,n],r)=>{const y=6+r*34,mx=Math.max(1,...cnts[r]);
+    g+=`<text x="2" y="${y+17}" font-size="12" fill="var(--text)">${KINDS[k].e}${n.slice(0,2)}</text>`;
+    cnts[r].forEach((v,h)=>{
+      g+=`<rect x="${L+h*cw+.5}" y="${y}" width="${cw-1}" height="26" rx="3" fill="${v?`var(--${k})`:'var(--line)'}" fill-opacity="${v?(.25+.75*v/mx).toFixed(2):.45}"/>`;
+      if(v)g+=`<text x="${L+h*cw+cw/2}" y="${y+17}" font-size="9" fill="#fff" text-anchor="middle">${v}</text>`});
+  });
+  [0,6,12,18,23].forEach(h=>g+=`<text x="${L+h*cw+cw/2}" y="${6+3*34+8}" font-size="10" fill="var(--sub)" text-anchor="middle">${h}点</text>`);
+  const top=r=>{const m=Math.max(...cnts[r]);return m?cnts[r].indexOf(m)+'点':'—'};
+  $('chartNote').textContent=`颜色越深=这个钟点记得越多。最常尿尿：${top(0)} · 最常便便：${top(1)} · 最常喝：${top(2)}`;
+  return svg(6+3*34+14,g);
+}
+
+function renderChart(){
+  const T=$('ctabs');T.innerHTML='';
+  CTABS.forEach(([k,n])=>{const b=document.createElement('button');b.className='chip'+(chartTab===k?' on':'');b.textContent=n;b.onclick=()=>{chartTab=k;renderChart()};T.appendChild(b)});
+  $('chartNote').textContent='';
+  $('chart').innerHTML=({today:chartToday,week:chartWeek,shape:chartShape,hour:chartHour})[chartTab]();
+}
+
 function render(){
   interval('pee','peeToday','peeAvg','peeNext');
   interval('poo','pooToday','pooAvg','pooNext');
@@ -214,6 +323,7 @@ function render(){
   const sh=of('poo').slice(-6).map(e=>(e.d||{}).s).filter(Boolean);
   $('shapes').textContent=sh.length?sh.join(' · ')+' 型':'—';
   tips();
+  renderChart();
   const F=$('filters');F.innerHTML='';
   [['all','全部'],...Object.entries(KINDS).map(([k,v])=>[k,v.n])].forEach(([k,n])=>{
     const b=document.createElement('button');b.className='chip'+(filter===k?' on':'');b.textContent=n;b.onclick=()=>{filter=k;render()};F.appendChild(b)});
