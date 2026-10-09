@@ -64,6 +64,8 @@ input[type=text],input[type=number],input[type=datetime-local]{width:100%;font:i
     <button class="b-other" id="bOther"><span>📝</span>其它</button>
   </div>
 
+  <div style="text-align:center;margin:-4px 0 12px"><button class="chip" id="bBack">忘了点？补记一条 ›</button></div>
+
   <div class="card tips" id="tips" style="display:none"></div>
 
   <div class="grid2">
@@ -375,7 +377,7 @@ function chipsHTML(name,opts,cur,cls){
 function openSheet(kind,ev){
   const editing=!!ev,d=Object.assign({},(ev&&ev.d)||{}),t=ev?ev.t:Date.now();
   const sh=$('sheet');
-  const timeFld=`<div class="fld"><div class="lbl">时间${editing?'（要改时间请删掉重记）':''}</div><input type="datetime-local" id="fTime" value="${toLocalInput(t)}" ${editing?'disabled':''}></div>`;
+  const timeFld=`<div class="fld"><div class="lbl">时间${editing?'（可修改）':'（默认现在，补记就改成当时的时间）'}</div><input type="datetime-local" id="fTime" value="${toLocalInput(t)}"></div>`;
   const noteFld=`<div class="fld"><div class="lbl">备注（可不填）</div><input type="text" id="fNote" maxlength="60" value="${esc(d.n||'')}" placeholder="比如：吃了香蕉、哭闹、肚子胀…"></div>`;
   let body='';
   if(kind==='poo')body=timeFld+`<div class="fld"><div class="lbl">形态（点最像的那个）</div>${chipsHTML('s',SHAPES,d.s,'shape')}</div>
@@ -410,13 +412,21 @@ function openSheet(kind,ev){
     if(kind==='other'){nd.name=$('fName').value.trim()||'其它'}
     const n=$('fNote').value.trim();if(n)nd.n=n;
     let tt=t;
-    if(!editing){const v=$('fTime').value;tt=v?new Date(v).getTime():Date.now();if(isNaN(tt))tt=Date.now()}
+    {const v=$('fTime').value;const x=v?new Date(v).getTime():NaN;tt=isNaN(x)?t:x}
+    if(editing&&tt!==t)delEvent(t,kind);   // 改了时间:删旧记新
     closeSheet();putEvent(tt,kind,nd);
     if(kind==='poo'){const c=nd.c;if(c==='红/带血'||c==='黑'||c==='白灰')toast('颜色不常见，建议拍照问医生')}
   };
   $('mask').style.display='block';sh.style.display='block';sh.scrollTop=0;
 }
 
+$('bBack').onclick=()=>{
+  const sh=$('sheet');
+  sh.innerHTML=`<h2>补记哪一种？</h2><div class="chips">${Object.entries(KINDS).map(([k,v])=>`<button type="button" class="chip" data-k="${k}" style="font-size:16px;padding:10px 16px">${v.e} ${v.n}</button>`).join('')}</div><button class="cancel" id="bbCancel">取消</button>`;
+  sh.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>openSheet(b.dataset.k));
+  $('bbCancel').onclick=closeSheet;
+  $('mask').style.display='block';sh.style.display='block';
+};
 $('bPee').onclick=()=>{const t=Date.now();putEvent(t,'pee',{});toast('已记尿尿','补充颜色/量',()=>openSheet('pee',{t,k:'pee',d:{}}))};
 $('bPoo').onclick=()=>openSheet('poo');
 $('bDrink').onclick=()=>openSheet('drink');
