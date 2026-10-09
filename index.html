@@ -58,6 +58,12 @@ li .ops .del{color:var(--danger)}
 .nx .tx small{display:block;font-size:12px;color:var(--sub);margin-top:2px}
 .nx .now .tm{color:var(--danger)}
 .why{font-size:12px;color:var(--sub);margin:8px 0 0;line-height:1.6}
+.hero{text-align:center;padding:6px 0 4px}
+.hero .hl{font-size:17px;font-weight:700}
+.hero .cd{font-size:46px;font-weight:800;line-height:1.15;margin:6px 0 0;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.hero .cdl{font-size:13px;color:var(--sub);margin-top:-2px}
+.hero .at{font-size:15px;font-weight:600;margin-top:8px}
+.hero .hs{font-size:12px;color:var(--sub);margin-top:3px;line-height:1.5}
 #mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:10}
 #sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--card);border-radius:18px 18px 0 0;padding:16px 16px 24px;max-height:88vh;overflow:auto;z-index:11;display:none}
 #sheet h2{margin:0 0 10px;font-size:17px}
@@ -420,51 +426,62 @@ function predictPoo(now=Date.now()){
 
 const rel=ms=>ms>=0?'还有'+dur(ms):'已过'+dur(-ms);
 function dayLabel(t,now){const d=Math.round((dayStart(t)-dayStart(now))/864e5);return d===0?'今天':d===1?(new Date(t).getHours()<12?'明早':'明天'):d===2?'后天':''}
+const hms=ms=>{const t=Math.max(0,Math.floor(ms/1000)),d=Math.floor(t/86400),h=Math.floor(t%86400/3600),m=Math.floor(t%3600/60),sec=t%60;return (d?d+'天 ':'')+p2(h)+':'+p2(m)+':'+p2(sec)};
 function renderPredict(){
   const now=Date.now(),pe=predictPee(now),po=predictPoo(now);
-  const items=[];   // {key:排序时间, tm:大字, tmSub:小字, tx:一句话, sub:补充}
+  const PEE='var(--pee)',POO='var(--poo)';
+  const items=[];   // key:排序时间; target:倒计时终点; up:正计时起点(已过); at:具体几点的小标题; static:不倒计时时的大字
   // —— 尿尿 ——
   if(!pe.none){
     const itv=pe.interval*6e4;
     if(pe.overdue){
       const late=now-pe.hi;
-      items.push({key:now,now:1,tm:'现在',tmSub:'已过预计时间',tx:'💧 该带他去尿尿了',sub:`按他的习惯，上一次 ${clock(pe.last)} 之后大约 ${clock(pe.center)} 就该尿了，已经晚了 ${dur(late)}。${late>itv?'也可能是忘了记，记一下就会重新计算。':''}`});
+      items.push({key:now,col:PEE,up:pe.center,tx:'💧 该带他去尿尿了',at:`本来预计 ${clock(pe.center)} 左右`,sub:`上一次 ${clock(pe.last)}，按他的习惯早该尿了。${late>itv?'也可能是忘了记，记一下就会重新计算。':''}`});
+    }else if(!pe.tomorrow&&pe.center<=now){
+      items.push({key:now,col:PEE,up:pe.center,tx:'💧 差不多该尿尿了',at:`预计 ${clock(pe.center)} 左右（到 ${clock(pe.hi)} 前都正常）`,sub:`上一次 ${clock(pe.last)}，间隔约 ${dur(itv)}`});
     }else if(!pe.tomorrow){
-      items.push({key:pe.center,tm:'约 '+clock(pe.center),tmSub:rel(pe.center-now),tx:'💧 下一次尿尿',sub:`大概率在 ${clock(pe.lo)}–${clock(pe.hi)} 之间。上一次 ${clock(pe.last)} + 间隔约 ${dur(itv)}${pe.drinkAdj?'，刚喝了水所以提前了一点':''}`});
+      items.push({key:pe.center,col:PEE,target:pe.center,tx:'💧 下一次尿尿',at:`预计 ${clock(pe.center)} 左右（${clock(pe.lo)}–${clock(pe.hi)} 之间）`,sub:`上一次 ${clock(pe.last)} + 间隔约 ${dur(itv)}${pe.drinkAdj?'，刚喝了水所以提前了一点':''}`});
     }
-    // 之后再来一次(睡前)
-    let nxt=(pe.overdue?now:pe.center)+itv,c=0;
+    let nxt=(pe.overdue||pe.center<=now?now:pe.center)+itv,c=0;
     while(true){
       if(c>=2||new Date(nxt).getHours()>=22||new Date(nxt).getHours()<5||dayStart(nxt)!==dayStart(now))break;
-      items.push({key:nxt,tm:'约 '+clock(nxt),tmSub:rel(nxt-now),tx:'💧 再下一次尿尿'+(new Date(nxt).getHours()>=20?'（睡前）':''),sub:'再隔一个平均间隔'});
+      items.push({key:nxt,col:PEE,target:nxt,tx:'💧 再下一次尿尿'+(new Date(nxt).getHours()>=20?'（睡前）':''),at:`预计 ${clock(nxt)} 左右`,sub:'再隔一个平均间隔'});
       nxt+=itv;c++;
     }
-    items.push({key:pe.morning,tm:dayLabel(pe.morning,now)+' '+clock(pe.morning),tmSub:rel(pe.morning-now),tx:'💧 起床后第一次尿尿',sub:pe.tomorrow?'夜里睡觉不用记，按他平时起床的时间估':'按他平时起床的时间估'});
+    items.push({key:pe.morning,col:PEE,target:pe.morning,tx:'💧 起床后第一次尿尿',at:`预计 ${dayLabel(pe.morning,now)} ${clock(pe.morning)} 左右`,sub:pe.tomorrow?'夜里睡觉不用记，按他平时起床的时间估':'按他平时起床的时间估'});
   }
   // —— 便便 ——
   if(!po.none){
-    const win=`${p2(po.q1)}:00–${p2(po.q3)}:00`;
+    const win=`${po.q1}–${po.q3} 点`;
     const todayMid=dayStart(now)+((po.q1+po.q3)/2)*36e5;
     if(po.nToday===0&&po.pLeft>=0.25){
-      const key=Math.max(now,todayMid);
-      items.push({key,tm:`今天 ${po.q1}–${po.q3}点`,tmSub:`可能性约 ${Math.round(po.pLeft*100)}%`,tx:'💩 今天还没便便，还可能便',sub:`他平时多在 ${win} 之间便便。${po.sinceLast>48*36e5?`已经 ${dur(po.sinceLast)} 没便了，多喝水多吃蔬果，超过 3 天要留意。`:''}`});
+      const note=po.sinceLast>48*36e5?`已经 ${dur(po.sinceLast)} 没便了，多喝水多吃蔬果，超过 3 天要留意。`:'';
+      if(todayMid>now)items.push({key:todayMid,col:POO,target:todayMid,tx:'💩 今天还可能便便',at:`预计 今天 ${win}（可能性约 ${Math.round(po.pLeft*100)}%）`,sub:`他平时多在这个时间段。${note}`});
+      else items.push({key:now+1,col:POO,static:'还没便便',tx:'💩 今天还没便便',at:`平时多在 ${win}，今晚前还会便的可能约 ${Math.round(po.pLeft*100)}%`,sub:note});
     }else{
       const tm=dayStart(now)+864e5+po.q1*36e5;
-      items.push({key:tm,tm:`明天 ${po.q1}–${po.q3}点`,tmSub:rel(tm-now),tx:po.nToday>0?'💩 今天已便，下一次多半在明天':'💩 今天大概率不会再便了，下一次在明天',sub:`他平时多在 ${win} 之间。近 ${Math.round(po.dObs)} 天平均每天 ${po.personalRate.toFixed(1)} 次。${po.sinceLast>48*36e5?`已 ${dur(po.sinceLast)} 没便，留意是否偏干。`:''}`});
+      items.push({key:tm,col:POO,target:tm,tx:po.nToday>0?'💩 今天已便，下一次在明天':'💩 今天大概率不会再便了，下一次在明天',at:`预计 明天 ${win}`,sub:`近 ${Math.round(po.dObs)} 天平均每天 ${po.personalRate.toFixed(1)} 次。${po.sinceLast>48*36e5?`已 ${dur(po.sinceLast)} 没便，留意是否偏干。`:''}`});
     }
   }
   items.sort((x,y)=>x.key-y.key);
-  let h=`<h3>🔮 接下来会怎样</h3><div class="sub" style="font-size:12px;color:var(--sub)">按时间顺序排好了，最上面的就是最近要发生的</div>`;
-  if(!items.length)h+='<div class="sub" style="padding:14px 0">先记几次尿尿和便便，这里就会告诉你接下来大概什么时候。</div>';
-  else h+='<ul class="nx">'+items.map(i=>`<li class="${i.now?'now':''}"><div class="tm">${esc(i.tm)}<small>${esc(i.tmSub)}</small></div><div class="tx">${esc(i.tx)}<small>${esc(i.sub)}</small></div></li>`).join('')+'</ul>';
-  // 怎么推的(一句话)
+  const hero=items[0];
+  let h='';
+  if(!hero)h='<h3>🔮 接下来会怎样</h3><div class="sub" style="padding:10px 0;font-size:13px;color:var(--sub)">先记几次尿尿和便便，这里就会告诉你下一次大概什么时候。</div>';
+  else{
+    const up=hero.up!=null;
+    const cd=hero.static?`<div class="cd" style="color:${hero.col}">${esc(hero.static)}</div>`
+      :`<div class="cd${up?' up':''}" id="cd" style="color:${up?'var(--danger)':hero.col}" data-mode="${up?'up':'down'}" data-t="${up?hero.up:hero.target}">${hms(up?now-hero.up:hero.target-now)}</div>`;
+    const cap=hero.static?'':(up?'已超过预计时间':'倒计时');
+    h=`<div class="hero"><div class="hl">${esc(hero.tx)}</div>${cd}${cap?`<div class="cdl">${cap}</div>`:''}<div class="at">${esc(hero.at)}</div><div class="hs">${esc(hero.sub)}</div></div>`;
+  }
+  const rest=items.slice(1);
+  if(rest.length)h+=`<details><summary>后面还有什么？</summary><ul class="nx">${rest.map(i=>`<li><div class="tm">${esc(i.at.replace(/^预计 /,'').replace(/（.*$/,''))}</div><div class="tx">${esc(i.tx)}</div></li>`).join('')}</ul></details>`;
   const why=[];
   if(pe.none)why.push('💧 还没有尿尿记录，一般规律是白天约 2–3 小时一次。');
   else why.push(`💧 尿尿：白天约每 ${dur(pe.interval*6e4)} 一次（${pe.personal?`你们记录里平均 ${dur(pe.personal*6e4)}，`:''}一般 2–3 小时）· 把握：${pe.conf}。今天已 ${pe.nToday} 次，预计全天约 ${pe.expectedTotal} 次（一般 6–10 次，只算记下来的）。`);
   if(po.none)why.push('💩 还没有便便记录，一般规律是每天约 1 次，隔天一次到每天两次都算正常。');
   else why.push(`💩 便便：近 ${Math.round(po.dObs)} 天平均每天 ${po.personalRate.toFixed(1)} 次，综合按 ${po.rate.toFixed(1)} 次/天算（一般约 1 次）· 把握：${po.conf}。`);
-  h+=`<div class="why">${why.map(esc).join('<br>')}</div>`;
-  h+=`<details><summary>怎么算的？数据哪来的？</summary>
+  h+=`<details><summary>怎么算的？数据哪来的？</summary><p>${why.map(esc).join('<br>')}</p>
     <p><b>尿尿：</b>先用一般规律（白天约 2.5 小时一次）当起点，再把你们记录的白天间隔一点点加进来，记得越多越信你们自己的。预测时间 = 上一次 + 间隔；刚喝了 100ml 以上的水会提前一点（经验调整）。预计落在夜里就改成预测明早第一次。</p>
     <p><b>便便：</b>按“每天约 1 次”当起点，加上近 14 天的次数，算出今天还会不会再便、平时最常在几点。</p>
     <p><b>注意：</b>只能算“记下来的”，漏记会让间隔偏长；这是估计，不是诊断，宝宝不舒服请看医生。</p>
@@ -473,10 +490,16 @@ function renderPredict(){
     <a href="https://med.virginia.edu/pediatrics/?p=1201" target="_blank" rel="noopener">弗吉尼亚大学儿科（2岁起多数每天 1 次，95% 在隔天一次到每天两次）</a> ·
     <a href="https://epaper.ntuh.gov.tw/health/201809/pdf/兒童便祕問題面面觀.pdf" target="_blank" rel="noopener">台大医院（便秘判断）</a></p></details>`;
   $('pred').innerHTML=h;
-  // 统计卡里的“预计下次”也用同一套结果,避免两个数字打架
   $('peeNext').textContent=pe.none?'还没有记录':(pe.overdue?'已超过预计时间':(pe.tomorrow?`预计明早 ${clock(pe.center)}`:`预计 ${clock(pe.center)} 左右`));
   $('pooNext').textContent=po.none?'还没有记录':(po.nToday>0?`预计明天 ${po.q1}–${po.q3} 点`:`今晚前再便约 ${Math.round(po.pLeft*100)}%`);
 }
+// 倒计时每秒走一次;倒计时走完就重新算(会变成"差不多该尿了"并开始正计时)
+setInterval(()=>{
+  const el=document.getElementById('cd');if(!el||!el.dataset.t)return;
+  const t=Number(el.dataset.t),up=el.dataset.mode==='up',ms=up?Date.now()-t:t-Date.now();
+  if(!up&&ms<=0){renderPredict();return}
+  el.textContent=hms(ms);
+},1000);
 
 function render(){
   interval('pee','peeToday','peeAvg','peeNext');
