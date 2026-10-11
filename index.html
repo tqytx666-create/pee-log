@@ -64,6 +64,22 @@ li .ops .del{color:var(--danger)}
 .hero .cdl{font-size:13px;color:var(--sub);margin-top:-2px}
 .hero .at{font-size:15px;font-weight:600;margin-top:8px}
 .hero .hs{font-size:12px;color:var(--sub);margin-top:3px;line-height:1.5}
+.tlhint{font-size:13px;color:var(--sub);margin:0 0 8px;line-height:1.5}
+.tlscroll{overflow-x:auto;overflow-y:hidden;border:1px solid var(--line);border-radius:12px;background:var(--bg);-webkit-overflow-scrolling:touch}
+.tlin{position:relative;height:150px;cursor:crosshair}
+.tlin .tk{position:absolute;top:0;bottom:0;border-left:1px solid var(--line)}
+.tlin .tk span{position:absolute;bottom:4px;left:4px;font-size:11px;color:var(--sub)}
+.tlin .tk.half{border-left:1px dashed var(--line);opacity:.6}
+.tlin .nl{position:absolute;top:0;bottom:0;width:2px;background:var(--danger)}
+.tlin .fut{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,rgba(128,128,128,.12) 0 6px,transparent 6px 12px)}
+.tlin .ex{position:absolute;top:14px;width:10px;height:10px;margin-left:-5px;border-radius:50%;opacity:.55}
+.tlin .ex.est{background:transparent!important;border:1.5px dashed currentColor}
+.tlin .mk{position:absolute;top:34px;width:26px;height:60px;margin-left:-13px;touch-action:none;cursor:grab;z-index:2;display:flex;flex-direction:column;align-items:center}
+.tlin .mk::before{content:"";width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--pee);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.tlin .mk::after{content:"";width:2px;flex:1;background:var(--accent);opacity:.6}
+.tlin .mk em{position:absolute;top:-17px;font-style:normal;font-size:12px;font-weight:700;white-space:nowrap;background:var(--card);padding:0 4px;border-radius:6px}
+.tlsum{font-size:14px;margin:10px 0 2px;min-height:21px}
+.tlbar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 #mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:10}
 #sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--card);border-radius:18px 18px 0 0;padding:16px 16px 24px;max-height:88vh;overflow:auto;z-index:11;display:none}
 #sheet h2{margin:0 0 10px;font-size:17px}
@@ -90,7 +106,7 @@ input[type=text],input[type=number],input[type=datetime-local]{width:100%;font:i
     <button class="b-other" id="bOther"><span>📝</span>其它</button>
   </div>
 
-  <div style="text-align:center;margin:-4px 0 12px"><button class="chip" id="bBack">忘了点？补记一条 ›</button></div>
+  <div style="text-align:center;margin:-4px 0 12px"><button class="chip" id="bBack">忘了点？在时间线上补记 ›</button></div>
 
   <div class="card tips" id="tips" style="display:none"></div>
 
@@ -127,7 +143,7 @@ input[type=text],input[type=number],input[type=datetime-local]{width:100%;font:i
   </div>
 
   <div class="note">仅作记录参考，宝宝不舒服请及时看医生</div>
-  <div class="foot"><span id="sync"></span> · <button id="exp">导出备份</button></div>
+  <div class="foot"><span id="sync"></span> · <button id="exp">导出备份</button> · <button id="autoBtn"></button></div>
 </main>
 
 <div id="mask"></div>
@@ -200,6 +216,7 @@ async function sync(){
       }
       const list=await rpc('kl_list',{p_code:code});
       data.events=applyPending(list);save();render();
+      setTimeout(autoFillNotify,0);
     }while(again||data.pending.length);
     status('已同步 · '+p2(new Date().getHours())+':'+p2(new Date().getMinutes()));
   }catch(e){status('同步失败，已先存在本机，稍后自动重试',true)}
@@ -220,8 +237,9 @@ const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
 const of=k=>data.events.filter(e=>e.k===k).sort((a,b)=>a.t-b.t);
 const t0=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
 function interval(k,todayId,avgId,nextId){
-  const ts=of(k).map(e=>e.t);
-  $(todayId).textContent=ts.filter(t=>t>=t0()).length+' 次';
+  const all=of(k),ts=all.filter(e=>!(e.d||{}).est).map(e=>e.t);
+  const nEst=all.filter(e=>e.t>=t0()&&(e.d||{}).est).length;
+  $(todayId).textContent=all.filter(e=>e.t>=t0()).length+' 次'+(nEst?`（含估计 ${nEst}）`:'');
   const gaps=[];for(let i=1;i<ts.length;i++)gaps.push(ts[i]-ts[i-1]);
   if(!gaps.length){$(avgId).textContent='—';$(nextId).textContent=ts.length?'再记一次就能预测':'还没有记录';return}
   const avg=mean(gaps),nx=ts[ts.length-1]+avg;
@@ -236,6 +254,7 @@ function detailText(e){
   if(e.k==='drink'){a.push((d.w||'水')+(d.ml?' '+d.ml+'ml':''))}
   if(e.k==='other'){a.push(d.name||'其它')}
   if(d.n)a.push('「'+d.n+'」');
+  if(d.est)a.unshift('估计·按平时规律补的，可点“编辑”改成真实时间');
   return a.join(' · ');
 }
 
@@ -251,7 +270,7 @@ function tips(){
   const loose=poo.filter(e=>e.t>=t0()&&(e.d||{}).s>=6).length;
   if(loose>=3)T.push(`今天已有 ${loose} 次偏稀的便便，注意多补水，持续或精神差请就医。`);
   if(lastPoo&&now-lastPoo.t>72*36e5)T.push(`已经 ${dur(now-lastPoo.t)} 没记录到便便，留意是否偏干、肚子是否胀。`);
-  const lastPee=pee[pee.length-1];
+  const realPee=pee.filter(e=>!(e.d||{}).est),lastPee=realPee[realPee.length-1];
   if(lastPee&&now-lastPee.t>8*36e5&&new Date().getHours()>=9&&new Date().getHours()<22)T.push(`已经 ${dur(now-lastPee.t)} 没记录到尿尿（若只是忘了点可忽略），注意是否喝水少。`);
   if(lastPee&&now-lastPee.t<36e5*24&&(lastPee.d||{}).c==='红/粉')T.push('最近一次尿尿颜色偏红/粉，建议问医生。');
   const el=$('tips');
@@ -278,7 +297,8 @@ function chartToday(){
       if(n[k]!==undefined)n[k]++;
       const r=k==='drink'?Math.min(9,3.5+(dd(e).ml||0)/35):6;
       const bad=k==='poo'&&BAD_POO.includes(dd(e).c);
-      g+=`<circle cx="${x(e.t)}" cy="${y}" r="${r}" fill="var(--${k})" fill-opacity=".85"${bad?' stroke="var(--danger)" stroke-width="2.5"':''}/>`;
+      const est=!!dd(e).est;
+      g+=`<circle cx="${x(e.t)}" cy="${y}" r="${r}" fill="var(--${k})" fill-opacity="${est?.2:.85}"${bad?' stroke="var(--danger)" stroke-width="2.5"':(est?` stroke="var(--${k})" stroke-width="1.5" stroke-dasharray="3 2"`:'')}/>`;
     });
   });
   [0,6,12,18,24].forEach(h=>{const xx=L+h/24*iw;g+=`<line x1="${xx}" x2="${xx}" y1="8" y2="116" stroke="var(--line)" stroke-dasharray="2 3"/><text x="${xx}" y="132" font-size="10" fill="var(--sub)" text-anchor="middle">${h}点</text>`});
@@ -371,11 +391,13 @@ const confTxt=(n,lo,hi)=>n<lo?'低（数据还少，主要参考一般规律）'
 
 function predictPee(now=Date.now()){
   const from=now-14*864e5;
-  const ts=of('pee').map(e=>e.t).filter(t=>t>=from&&t<=now);
+  const evs=of('pee').filter(e=>e.t>=from&&e.t<=now);
+  const ts=evs.map(e=>e.t);
+  const real=evs.filter(e=>!(e.d||{}).est).map(e=>e.t);   // 只用真实记录学间隔,估计的不拿来"自我强化"
   if(!ts.length)return{none:true};
   const gaps=[];
-  for(let i=1;i<ts.length;i++){
-    const a=ts[i-1],b=ts[i],g=(b-a)/6e4;
+  for(let i=1;i<real.length;i++){
+    const a=real[i-1],b=real[i],g=(b-a)/6e4;
     if(dayStart(a)===dayStart(b)&&new Date(a).getHours()>=6&&new Date(b).getHours()<=22&&g>=10&&g<=480)gaps.push(g); // 只算白天、同一天的间隔
   }
   const n=gaps.length,k=PRIOR.k;
@@ -387,7 +409,7 @@ function predictPee(now=Date.now()){
   const recentMl=of('drink').filter(e=>e.t>now-90*6e4&&e.t<=now).reduce((s,e)=>s+(Number(dd(e).ml)||0),0);
   const adj=recentMl>=100?1-0.2*Math.min(1,recentMl/200):1;
   const firsts=[];
-  for(let d=dayStart(now);d>now-14*864e5;d-=864e5){const m=ts.filter(t=>t>=d&&t<d+864e5).map(minOfDay).filter(x=>x<660);if(m.length)firsts.push(Math.min(...m))}
+  for(let d=dayStart(now);d>now-14*864e5;d-=864e5){const m=real.filter(t=>t>=d&&t<d+864e5).map(minOfDay).filter(x=>x<660);if(m.length)firsts.push(Math.min(...m))}
   const fm=firsts.length>=3?(PRIOR.k*420+firsts.length*med(firsts))/(PRIOR.k+firsts.length):420;
   const base=new Date(now);if(base.getHours()>=5)base.setDate(base.getDate()+1);base.setHours(0,0,0,0);
   const morning=base.getTime()+fm*6e4;
@@ -396,9 +418,11 @@ function predictPee(now=Date.now()){
   if(hc>=22||hc<5){center=morning;half=40*6e4;tomorrow=true}   // 预计落在睡觉时间 → 看明早第一次
   const nh=new Date(now).getHours();
   if(!tomorrow&&(nh>=22||nh<5)&&center<now){center=morning;half=40*6e4;tomorrow=true}   // 夜里不催,直接看明早
+  const lastReal=real.length?real[real.length-1]:0;
+  const estRun=evs.filter(e=>(e.d||{}).est&&e.t>lastReal).length;
   const nToday=ts.filter(t=>t>=dayStart(now)).length;
   const remain=new Date(now).getHours()<22?Math.max(0,Math.floor((22*60-minOfDay(now))/interval)):0;
-  return{center,lo:center-half,hi:center+half,interval,personal:pm,n,tomorrow,morning,last,sd,overdue:!tomorrow&&center+half<now,
+  return{center,lo:center-half,hi:center+half,baseCenter:last+interval*6e4,estRun,interval,personal:pm,n,tomorrow,morning,last,sd,overdue:!tomorrow&&center+half<now,
     nToday,expectedTotal:nToday+remain,drinkAdj:adj<1,conf:confTxt(n,5,15)};
 }
 
@@ -501,6 +525,118 @@ setInterval(()=>{
   el.textContent=hms(ms);
 },1000);
 
+// ---- 时间线补记:在一条时间线上直接点位置,点几下记几条 ----
+function openTimeline(){
+  const sh=$('sheet'),PX=72,SNAP=5,KS=['pee','poo'];
+  let day=0,kind='pee';
+  const marks={pee:[],poo:[]};
+  const base=()=>dayStart(Date.now())-day*864e5;
+  const xOf=t=>(t-base())/36e5*PX;
+  const tOf=x=>base()+Math.round(x/PX*60/SNAP)*SNAP*6e4;
+  const inDay=t=>t>=base()&&t<base()+864e5;
+  function summary(){
+    const n=KS.reduce((a,k)=>a+marks[k].length,0);
+    const parts=KS.filter(k=>marks[k].length).map(k=>`${KINDS[k].e} ${[...marks[k]].sort((a,b)=>a-b).map(t=>(dayStart(t)===dayStart(Date.now())?'':'昨 ')+clock(t)).join('、')}`);
+    return {n,html:n?parts.join('　'):'还没有标记，点上面的时间线就会加一个'};
+  }
+  function draw(){
+    const prev=sh.querySelector('.tlscroll');const left=prev?prev.scrollLeft:null;
+    const now=Date.now(),b=base();
+    let ticks='';for(let h=0;h<24;h++)ticks+=`<div class="tk" style="left:${h*PX}px"><span>${h}点</span></div><div class="tk half" style="left:${h*PX+PX/2}px"></div>`;
+    const ex=data.events.filter(e=>(e.k==='pee'||e.k==='poo')&&inDay(e.t)).map(e=>`<i class="ex${(e.d||{}).est?' est':''}" style="left:${xOf(e.t)}px;background:var(--${e.k});color:var(--${e.k})" title="${clock(e.t)}"></i>`).join('');
+    const mk=KS.flatMap(k=>marks[k].filter(inDay).map(t=>({k,t}))).map(m=>`<b class="mk" data-k="${m.k}" data-t="${m.t}" style="left:${xOf(m.t)}px"><em>${clock(m.t)}</em></b>`).join('');
+    const nl=day===0?`<div class="nl" style="left:${xOf(now)}px"></div><div class="fut" style="left:${xOf(now)}px;right:0"></div>`:'';
+    const sm=summary();
+    sh.innerHTML=`<h2>🕒 在时间线上补记</h2>
+      <p class="tlhint">在下面的时间线上<b>直接点</b>想补的时间，点几下就记几条；按住圆点可以左右拖着微调，点一下圆点是删掉。左右滑动能看到全天。</p>
+      <div class="filters"><button class="chip${day===0?' on':''}" data-day="0">今天</button><button class="chip${day===1?' on':''}" data-day="1">昨天</button>
+        <span style="flex:1"></span>
+        ${KS.map(k=>`<button class="chip${kind===k?' on':''}" data-kind="${k}">${KINDS[k].e} ${KINDS[k].n}${marks[k].length?' '+marks[k].length:''}</button>`).join('')}</div>
+      <div class="tlscroll"><div class="tlin" style="width:${24*PX}px">${ticks}${ex}${nl}${mk}</div></div>
+      <div class="lbl" style="margin-top:4px">浅色小点 = 已经记过的（虚线空心 = 估计的）。现在红线右边是未来，不能记。</div>
+      <div class="tlsum" id="tlsum">${sm.html}</div>
+      <div class="tlbar"><button class="save" id="tlSave" style="flex:1;margin:0"${sm.n?'':' disabled'}>${sm.n?`保存这 ${sm.n} 条`:'先点时间线'}</button></div>
+      <button class="cancel" id="tlCancel">取消</button>
+      <button class="cancel" id="tlOther" style="margin-top:0;text-decoration:underline;font-size:13px">要补喝水奶、其它，或要填颜色形态？用详细补记 ›</button>`;
+    const sc=sh.querySelector('.tlscroll');
+    sc.scrollLeft=left!==null?left:Math.max(0,(day===0?xOf(now):6*PX+PX)-sc.clientWidth*0.75);
+    const tin=sh.querySelector('.tlin');
+    tin.onclick=ev=>{
+      if(ev.target.closest('.mk'))return;
+      const r=tin.getBoundingClientRect();
+      const t=tOf(ev.clientX-r.left);
+      if(t>Date.now()){toast('这个时间还没到');return}
+      if(marks[kind].some(x=>Math.abs(x-t)<SNAP*6e4))return;
+      marks[kind].push(t);draw();
+    };
+    sh.querySelectorAll('.mk').forEach(el=>{
+      const k=el.dataset.k;let t=Number(el.dataset.t),sx=0,moved=false,x0=0;
+      el.onpointerdown=e=>{el.setPointerCapture(e.pointerId);sx=e.clientX;x0=xOf(t);moved=false;e.preventDefault()};
+      el.onpointermove=e=>{
+        if(!el.hasPointerCapture(e.pointerId))return;
+        const dx=e.clientX-sx;if(Math.abs(dx)>4)moved=true;
+        if(moved){let nt=tOf(x0+dx);nt=Math.max(base(),Math.min(base()+864e5-SNAP*6e4,nt));if(day===0&&nt>Date.now())nt=tOf(xOf(Date.now()));
+          el.style.left=xOf(nt)+'px';el.querySelector('em').textContent=clock(nt);el._nt=nt}
+      };
+      el.onpointerup=e=>{
+        if(moved&&el._nt){const i=marks[k].indexOf(t);if(i>=0)marks[k][i]=el._nt}
+        else{const i=marks[k].indexOf(t);if(i>=0)marks[k].splice(i,1)}   // 点一下 = 删掉这个标记
+        draw();
+      };
+    });
+    sh.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{day=Number(b.dataset.day);const sc2=sh.querySelector('.tlscroll');draw();});
+    sh.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{kind=b.dataset.kind;draw()});
+    $('tlCancel').onclick=closeSheet;
+    $('tlOther').onclick=()=>chooseKind();
+    $('tlSave').onclick=()=>{
+      let n=0;
+      KS.forEach(k=>marks[k].forEach(t=>{data.events=data.events.filter(e=>!(e.t===t&&e.k===k));data.events.push({t,k,d:{}});data.pending.push({op:'add',t,k,d:{}});n++}));
+      save();closeSheet();render();sync();
+      toast(`已补记 ${n} 条`);
+    };
+  }
+  $('mask').style.display='block';sh.style.display='block';sh.scrollTop=0;   // 先显示再画,才能把时间线滚到"现在"附近
+  draw();
+}
+function chooseKind(){
+  const sh=$('sheet');
+  sh.innerHTML=`<h2>详细补记哪一种？</h2><div class="chips">${Object.entries(KINDS).map(([k,v])=>`<button type="button" class="chip" data-k="${k}" style="font-size:16px;padding:10px 16px">${v.e} ${v.n}</button>`).join('')}</div><button class="cancel" id="bbCancel">取消</button>`;
+  sh.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>openSheet(b.dataset.k));
+  $('bbCancel').onclick=closeSheet;
+  $('mask').style.display='block';sh.style.display='block';
+}
+
+// ---- 忘了记:按他平时的规律自动补一条"估计"的尿尿,让预测能接着往下走 ----
+const autoOn=()=>{try{return localStorage.getItem('timelog.auto')!=='0'}catch(e){return true}};
+function autoFill(now=Date.now()){
+  if(!autoOn())return[];
+  try{if(now-Number(localStorage.getItem('timelog.autoSkip')||0)<2*36e5)return[]}catch(e){}   // 刚点过“撤销”,2小时内不再自动补
+  const nh=new Date(now).getHours();if(nh<6||nh>=22)return[];     // 夜里不补
+  const added=[];
+  for(let i=0;i<4;i++){
+    const pe=predictPee(now);
+    if(pe.none)break;
+    const itv=pe.interval*6e4,late=now-pe.baseCenter;
+    if(late<=Math.max(25*6e4,0.25*itv))break;                        // 还没晚到值得补
+    if(pe.estRun>=3)break;                                          // 连着估计3次就停,别编太多
+    const t=Math.round(pe.baseCenter/6e4)*6e4,hh=new Date(t).getHours();
+    if(hh<6||hh>=22)break;
+    if(data.events.some(e=>e.k==='pee'&&Math.abs(e.t-t)<20*6e4))break;
+    data.events.push({t,k:'pee',d:{est:1}});data.pending.push({op:'add',t,k:'pee',d:{est:1}});
+    added.push(t);
+  }
+  if(added.length){save();render();sync()}
+  return added;
+}
+function autoFillNotify(){
+  const a=autoFill();
+  if(a.length)toast(`忘了记？已按平时规律补了 ${a.length} 次估计的尿尿（${a.map(clock).join('、')}）`,'撤销',()=>{
+    a.forEach(t=>{data.events=data.events.filter(e=>!(e.t===t&&e.k==='pee'&&(e.d||{}).est));data.pending.push({op:'del',t,k:'pee'})});
+    try{localStorage.setItem('timelog.autoSkip',String(Date.now()))}catch(e){}
+    save();render();sync();
+  });
+}
+
 function render(){
   interval('pee','peeToday','peeAvg','peeNext');
   interval('poo','pooToday','pooAvg','pooNext');
@@ -589,22 +725,20 @@ function openSheet(kind,ev){
   $('mask').style.display='block';sh.style.display='block';sh.scrollTop=0;
 }
 
-$('bBack').onclick=()=>{
-  const sh=$('sheet');
-  sh.innerHTML=`<h2>补记哪一种？</h2><div class="chips">${Object.entries(KINDS).map(([k,v])=>`<button type="button" class="chip" data-k="${k}" style="font-size:16px;padding:10px 16px">${v.e} ${v.n}</button>`).join('')}</div><button class="cancel" id="bbCancel">取消</button>`;
-  sh.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>openSheet(b.dataset.k));
-  $('bbCancel').onclick=closeSheet;
-  $('mask').style.display='block';sh.style.display='block';
-};
+$('bBack').onclick=openTimeline;
 $('bPee').onclick=()=>{const t=Date.now();putEvent(t,'pee',{});toast('已记尿尿','补充颜色/量',()=>openSheet('pee',{t,k:'pee',d:{}}))};
 $('bPoo').onclick=()=>openSheet('poo');
 $('bDrink').onclick=()=>openSheet('drink');
 $('bOther').onclick=()=>openSheet('other');
+function paintAuto(){$('autoBtn').textContent='自动补记：'+(autoOn()?'开':'关')}
+$('autoBtn').onclick=()=>{try{localStorage.setItem('timelog.auto',autoOn()?'0':'1')}catch(e){}paintAuto();toast('自动补记已'+(autoOn()?'打开':'关闭'))};
+paintAuto();
 $('exp').onclick=()=>{const b=new Blob([JSON.stringify({events:data.events},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='宝宝记录备份.json';a.click()};
-setInterval(render,60000);
+setInterval(()=>{render();autoFillNotify()},60000);
 setInterval(sync,60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 render();sync();
+setTimeout(autoFillNotify,2500);   // 页面打开后,等云端同步完再看有没有漏记
 </script>
 </body>
 </html>
